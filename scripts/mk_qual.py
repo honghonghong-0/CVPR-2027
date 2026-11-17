@@ -53,11 +53,12 @@ for i, (lab, ims, r) in enumerate(B):
     fig.text(ib + 3 * (cw + gx) + cw / 2, yb, "LPIPS %.3f" % r["raw"]["lpips_gt"], fontsize=5.4, ha="center", va="top")
     fig.text(ib + 4 * (cw + gx) + cw / 2, yb, "%.3f (%s %.3f)" % (r["light"]["lpips_gt"], "↑" if d > 0 else "↓", abs(d)), fontsize=5.4, ha="center", va="top",
              color="#b2182b" if d > 0 else "#2166ac")
-cax = fig.add_axes([ia + 3 * (cw + gx) + 0.01, ytop - 2 * rowstep - ch - 0.075, 2 * cw + gx - 0.02, 0.016])
-cb = fig.colorbar(im, cax=cax, orientation="horizontal"); cb.ax.tick_params(labelsize=5, length=2, pad=1); cb.outline.set_linewidth(0.4)
-cb.set_label("mean |RGB difference|, shared by all six maps", fontsize=5.2, labelpad=1)
+cy = ytop - 2 * rowstep - ch - 0.024          # same baseline as the LPIPS row of (b)
+cax = fig.add_axes([ia + 3 * (cw + gx), cy - 0.013, 2 * cw + gx, 0.013])
+cb = fig.colorbar(im, cax=cax, orientation="horizontal", ticks=[0, 0.1, 0.2]); cb.ax.tick_params(labelsize=5, length=1.5, pad=1); cb.outline.set_linewidth(0.3)
+fig.text(ia + 3 * (cw + gx) - 0.008, cy - 0.0065, "mean |RGB difference|\n(shared scale)", fontsize=5.2, ha="right", va="center", linespacing=1.2)
 ty = ytop + 0.062
-fig.text(x0a, ty, "(a) Material edit vs. key/fill ratio change", fontsize=7.3, fontweight="bold", va="bottom")
-fig.text(x0b, ty, "(b) Lighting removal in ZeST transfer", fontsize=7.3, fontweight="bold", va="bottom")
+fig.text(ia + pw / 2, ty, "(a) Material edit vs. key/fill ratio change", fontsize=7.3, fontweight="bold", va="bottom", ha="center")
+fig.text(ib + pw / 2, ty, "(b) Lighting removal in ZeST transfer", fontsize=7.3, fontweight="bold", va="bottom", ha="center")
 fig.savefig("figs_out/qual.pdf", bbox_inches="tight", dpi=300); fig.savefig("figs_out/qual.png", bbox_inches="tight", dpi=150)
 print("ok")
