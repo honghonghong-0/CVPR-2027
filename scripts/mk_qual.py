@@ -60,6 +60,5 @@ ty = ytop + 0.085
 fig.text(x0a, ty, "(a) Material edit vs. key/fill ratio change", fontsize=7.3, fontweight="bold", va="bottom")
 fig.text(x0b, ty, "(b) Lighting removal in ZeST transfer", fontsize=7.3, fontweight="bold", va="bottom")
 for x0 in (x0a, x0b): fig.add_artist(plt.Line2D([x0, x0 + lw_ + pw], [ty - 0.018, ty - 0.018], color="#A0A0A0", lw=0.5))
-fig.add_artist(plt.Line2D([x0b - 0.012, x0b - 0.012], [0.02, ty - 0.03], color="#C0C0C0", lw=0.6))
 fig.savefig("figs_out/qual.pdf", bbox_inches="tight", dpi=300); fig.savefig("figs_out/qual.png", bbox_inches="tight", dpi=150)
 print("ok")
