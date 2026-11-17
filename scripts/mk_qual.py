@@ -24,7 +24,7 @@ for r in pick:
     t = T[r["tag"]]
     B.append((f"{t['mat'].capitalize()}, level {t['level']}", [crop(img(p), 0.12) for p in [key[(t["mat"], t["h"], t["Le"], t["level"])], key[("satin", t["g"], t["Lt"], 2)],
               key[(t["mat"], t["g"], t["Lt"], t["level"])], f"zest_main/{r['tag']}_raw.png", f"zest_main/{r['tag']}_light.png"]], r))
-fig = plt.figure(figsize=(7.0, 4.0))
+fig = plt.figure(figsize=(7.0, 3.75))
 cw, ch, gx = 0.084, 0.185, 0.008           # cell width/height (fig fraction), column gap
 x0a, x0b = 0.012, 0.535                     # panel origins; wide gutter between panels
 ytop = 0.80; rowstep = 0.262                # leaves a label strip above each row and a metric strip below
@@ -47,14 +47,16 @@ for i, (lab, ims, r) in enumerate(B):
     yb = ytop - i * rowstep - ch - 0.008
     d = r["light"]["lpips_gt"] - r["raw"]["lpips_gt"]
     fig.text(x0b + 3 * (cw + gx) + cw / 2, yb, "LPIPS %.3f" % r["raw"]["lpips_gt"], fontsize=5.4, ha="center", va="top")
-    fig.text(x0b + 4 * (cw + gx) + cw / 2, yb, "%.3f (%s%.3f)" % (r["light"]["lpips_gt"], "+" if d >= 0 else "$-$", abs(d)), fontsize=5.4, ha="center", va="top",
+    fig.text(x0b + 4 * (cw + gx) + cw / 2, yb, "%.3f (%s %.3f)" % (r["light"]["lpips_gt"], "↑" if d > 0 else "↓", abs(d)), fontsize=5.4, ha="center", va="top",
              color="#b2182b" if d > 0 else "#2166ac")
 # colorbar under the two difference columns of (a)
 cax = fig.add_axes([x0a + 3 * (cw + gx), ytop - 2 * rowstep - ch - 0.045, 2 * cw + gx, 0.014])
 cb = fig.colorbar(im, cax=cax, orientation="horizontal"); cb.ax.tick_params(labelsize=5, length=2, pad=1); cb.outline.set_linewidth(0.4)
 cb.set_label("mean |RGB difference| (shared scale)", fontsize=5.2, labelpad=1)
-fig.text(x0a, 1.0, "(a) Material edit vs. key/fill ratio change", fontsize=7.3, fontweight="bold", va="top")
-fig.text(x0b, 1.0, "(b) Lighting removal in ZeST transfer", fontsize=7.3, fontweight="bold", va="top")
-fig.add_artist(plt.Line2D([0.5235, 0.5235], [0.05, 0.96], color="#bbbbbb", lw=0.6))
+fig.text(x0a, 0.955, "(a) Material edit vs. key/fill ratio change", fontsize=7.3, fontweight="bold", va="top")
+fig.text(x0b, 0.955, "(b) Lighting removal in ZeST transfer", fontsize=7.3, fontweight="bold", va="top")
+fig.add_artist(plt.Line2D([0.5235, 0.5235], [0.05, 0.895], color="#C0C0C0", lw=0.6))
+pw = 5 * cw + 4 * gx
+for x0 in (x0a, x0b): fig.add_artist(plt.Line2D([x0, x0 + pw], [0.905, 0.905], color="#A0A0A0", lw=0.5))
 fig.savefig("figs_out/qual.pdf", bbox_inches="tight", dpi=300); fig.savefig("figs_out/qual.png", bbox_inches="tight", dpi=150)
 print("vmax", vmax, [r["tag"] for r in pick])
