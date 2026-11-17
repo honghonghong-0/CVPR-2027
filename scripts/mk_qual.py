@@ -56,7 +56,7 @@ for i, (lab, ims, r) in enumerate(B):
 cax = fig.add_axes([ia + 3 * (cw + gx) + 0.01, ytop - 2 * rowstep - ch - 0.075, 2 * cw + gx - 0.02, 0.016])
 cb = fig.colorbar(im, cax=cax, orientation="horizontal"); cb.ax.tick_params(labelsize=5, length=2, pad=1); cb.outline.set_linewidth(0.4)
 cb.set_label("mean |RGB difference|, shared by all six maps", fontsize=5.2, labelpad=1)
-ty = ytop + 0.085
+ty = ytop + 0.062
 fig.text(x0a, ty, "(a) Material edit vs. key/fill ratio change", fontsize=7.3, fontweight="bold", va="bottom")
 fig.text(x0b, ty, "(b) Lighting removal in ZeST transfer", fontsize=7.3, fontweight="bold", va="bottom")
 fig.savefig("figs_out/qual.pdf", bbox_inches="tight", dpi=300); fig.savefig("figs_out/qual.png", bbox_inches="tight", dpi=150)
