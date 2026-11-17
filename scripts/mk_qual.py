@@ -22,41 +22,44 @@ T = {f"{t['mat']}_{t['level']}_{t['g']}_{t['h']}_E{t['Le']}_T{t['Lt']}": t for t
 B = []
 for r in pick:
     t = T[r["tag"]]
-    B.append((f"{t['mat'].capitalize()}, level {t['level']}", [crop(img(p), 0.12) for p in [key[(t["mat"], t["h"], t["Le"], t["level"])], key[("satin", t["g"], t["Lt"], 2)],
+    B.append((f"{t['mat'].capitalize()}\nlevel {t['level']}", [crop(img(p), 0.12) for p in [key[(t["mat"], t["h"], t["Le"], t["level"])], key[("satin", t["g"], t["Lt"], 2)],
               key[(t["mat"], t["g"], t["Lt"], t["level"])], f"zest_main/{r['tag']}_raw.png", f"zest_main/{r['tag']}_light.png"]], r))
-fig = plt.figure(figsize=(7.0, 3.75))
-cw, ch, gx = 0.084, 0.185, 0.008           # cell width/height (fig fraction), column gap
-x0a, x0b = 0.012, 0.535                     # panel origins; wide gutter between panels
-ytop = 0.80; rowstep = 0.262                # leaves a label strip above each row and a metric strip below
+fig = plt.figure(figsize=(7.0, 3.2))
+cw, ch, gx = 0.0795, 0.235, 0.007            # cell width/height (fig fraction), column gap
+lw_ = 0.060                                # row-label column width
+x0a, x0b = 0.0, 0.525                      # panel origins
+ia, ib = x0a + lw_, x0b + lw_              # first image column of each panel
+ytop = 0.80; rowstep = 0.285
+pw = 5 * cw + 4 * gx
 def cell(x0, i, j): return fig.add_axes([x0 + j * (cw + gx), ytop - i * rowstep - ch, cw, ch])
 def clean(ax):
-    ax.set_xticks([]); ax.set_yticks([]); [s.set_visible(False) for s in ax.spines.values()]
+    ax.set_xticks([]); ax.set_yticks([]); [s_.set_visible(False) for s_ in ax.spines.values()]
+def rowlab(x, i, t): fig.text(x, ytop - i * rowstep - ch / 2, t, fontsize=6.5, fontweight="bold", va="center", ha="left", linespacing=1.3)
 ta = ["Base", "Material +1", "Ratio +1", r"$|\Delta|$ material", r"$|\Delta|$ ratio"]
 tb = ["Exemplar", "Target input", "Ground truth", "ZeST", "+ removal"]
 for i, (mat, ims, ds) in enumerate(A):
     for j, x in enumerate(ims + ds):
-        ax = cell(x0a, i, j); clean(ax)
+        ax = cell(ia, i, j); clean(ax)
         im = ax.imshow(x, cmap="magma", vmin=0, vmax=vmax) if j >= 3 else ax.imshow(x)
-        if i == 0: ax.set_title(ta[j], fontsize=6.3, pad=19)
-    fig.text(x0a, ytop - i * rowstep + 0.008, mat.capitalize(), fontsize=6.5, fontweight="bold", va="bottom")
+        if i == 0: ax.set_title(ta[j], fontsize=6.3, pad=3)
+    rowlab(x0a, i, mat.capitalize())
 for i, (lab, ims, r) in enumerate(B):
     for j, x in enumerate(ims):
-        ax = cell(x0b, i, j); clean(ax); ax.imshow(x)
-        if i == 0: ax.set_title(tb[j], fontsize=6.3, pad=19)
-    fig.text(x0b, ytop - i * rowstep + 0.008, lab, fontsize=6.5, fontweight="bold", va="bottom")
-    yb = ytop - i * rowstep - ch - 0.008
+        ax = cell(ib, i, j); clean(ax); ax.imshow(x)
+        if i == 0: ax.set_title(tb[j], fontsize=6.3, pad=3)
+    rowlab(x0b, i, lab)
+    yb = ytop - i * rowstep - ch - 0.006
     d = r["light"]["lpips_gt"] - r["raw"]["lpips_gt"]
-    fig.text(x0b + 3 * (cw + gx) + cw / 2, yb, "LPIPS %.3f" % r["raw"]["lpips_gt"], fontsize=5.4, ha="center", va="top")
-    fig.text(x0b + 4 * (cw + gx) + cw / 2, yb, "%.3f (%s %.3f)" % (r["light"]["lpips_gt"], "↑" if d > 0 else "↓", abs(d)), fontsize=5.4, ha="center", va="top",
+    fig.text(ib + 3 * (cw + gx) + cw / 2, yb, "LPIPS %.3f" % r["raw"]["lpips_gt"], fontsize=5.4, ha="center", va="top")
+    fig.text(ib + 4 * (cw + gx) + cw / 2, yb, "%.3f (%s %.3f)" % (r["light"]["lpips_gt"], "↑" if d > 0 else "↓", abs(d)), fontsize=5.4, ha="center", va="top",
              color="#b2182b" if d > 0 else "#2166ac")
-# colorbar under the two difference columns of (a)
-cax = fig.add_axes([x0a + 3 * (cw + gx), ytop - 2 * rowstep - ch - 0.045, 2 * cw + gx, 0.014])
+cax = fig.add_axes([ia + 3 * (cw + gx) + 0.01, ytop - 2 * rowstep - ch - 0.075, 2 * cw + gx - 0.02, 0.016])
 cb = fig.colorbar(im, cax=cax, orientation="horizontal"); cb.ax.tick_params(labelsize=5, length=2, pad=1); cb.outline.set_linewidth(0.4)
-cb.set_label("mean |RGB difference| (shared scale)", fontsize=5.2, labelpad=1)
-fig.text(x0a, 0.955, "(a) Material edit vs. key/fill ratio change", fontsize=7.3, fontweight="bold", va="top")
-fig.text(x0b, 0.955, "(b) Lighting removal in ZeST transfer", fontsize=7.3, fontweight="bold", va="top")
-fig.add_artist(plt.Line2D([0.5235, 0.5235], [0.05, 0.895], color="#C0C0C0", lw=0.6))
-pw = 5 * cw + 4 * gx
-for x0 in (x0a, x0b): fig.add_artist(plt.Line2D([x0, x0 + pw], [0.905, 0.905], color="#A0A0A0", lw=0.5))
+cb.set_label("mean |RGB difference|, shared by all six maps", fontsize=5.2, labelpad=1)
+ty = ytop + 0.085
+fig.text(x0a, ty, "(a) Material edit vs. key/fill ratio change", fontsize=7.3, fontweight="bold", va="bottom")
+fig.text(x0b, ty, "(b) Lighting removal in ZeST transfer", fontsize=7.3, fontweight="bold", va="bottom")
+for x0 in (x0a, x0b): fig.add_artist(plt.Line2D([x0, x0 + lw_ + pw], [ty - 0.018, ty - 0.018], color="#A0A0A0", lw=0.5))
+fig.add_artist(plt.Line2D([x0b - 0.012, x0b - 0.012], [0.02, ty - 0.03], color="#C0C0C0", lw=0.6))
 fig.savefig("figs_out/qual.pdf", bbox_inches="tight", dpi=300); fig.savefig("figs_out/qual.png", bbox_inches="tight", dpi=150)
-print("vmax", vmax, [r["tag"] for r in pick])
+print("ok")
