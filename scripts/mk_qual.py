@@ -1,48 +1,60 @@
-"""Qualitative figure. (a) material vs key/fill-ratio change with amplified difference maps (same base, view 0).
-(b) ZeST trials at the 25/50/75th percentile of LPIPS change (light - raw), chosen by rank, not by look."""
+"""Qualitative figure. (a) one-step material edit vs one-step key/fill ratio change (same base, view 0), with mean absolute
+RGB difference to the base on ONE color scale shared by all six maps. (b) ZeST trials at the 25/50/75th percentile of
+LPIPS change (removal - original), picked by rank."""
 import json, glob, numpy as np, matplotlib; matplotlib.use("Agg"); import matplotlib.pyplot as plt
 from PIL import Image
+plt.rcParams["font.family"] = "DejaVu Sans"
 P = json.load(open("results/pairs_diag.json"))
 def img(p, s=256): return np.asarray(Image.open(p).convert("RGB").resize((s, s)), dtype=np.float32) / 255
-def crop(x, f=0.18):
-    h = x.shape[0]; a = int(h * f); return x[a:h - a, a:h - a]
-rowsA = []
+def crop(x, f=0.18): h = x.shape[0]; a = int(h * f); return x[a:h - a, a:h - a]
+A = []
 for mat in ["velvet", "satin", "pearl"]:
     q = [p for p in P if p["mat"] == mat and p["geom"] == "sphere" and p["view"] == 0.0 and p["color"] == "pink"]
     m = [p for p in q if p["changed"] == "material" and p["level"] == 2][0]; r = [p for p in q if p["changed"] == "ratio" and p["level"] == 2][0]
     b = img("renders_diag/" + m["base_file"]); xm = img("renders_diag/" + m["file"]); xr = img("renders_diag/" + r["file"])
-    dm, dr = np.abs(xm - b).mean(2), np.abs(xr - b).mean(2); s = max(dm.max(), dr.max())
-    rowsA.append((mat, [crop(b), crop(xm), crop(xr), crop(dm / s), crop(dr / s)]))
+    A.append((mat, [crop(b), crop(xm), crop(xr)], [crop(np.abs(xm - b).mean(2)), crop(np.abs(xr - b).mean(2))]))
+vmax = max(d.max() for _, _, ds in A for d in ds)
 M = [json.loads(l) for f in sorted(glob.glob("renders_xfer/meta_*.jsonl")) for l in open(f)]
 key = {(x["mat"], x["geom"], x["light_id"], x["level"]): "renders_xfer/" + x["file"] for x in M}
 ze = json.load(open("results/zest_eval.json")); rows = sorted(ze["rows"], key=lambda r: r["light"]["lpips_gt"] - r["raw"]["lpips_gt"])
 pick = [rows[int(q * (len(rows) - 1))] for q in (0.25, 0.5, 0.75)]
 T = {f"{t['mat']}_{t['level']}_{t['g']}_{t['h']}_E{t['Le']}_T{t['Lt']}": t for t in json.load(open("zest_main/trials.json"))}
-rowsB = []
+B = []
 for r in pick:
     t = T[r["tag"]]
-    ims = [img(key[(t["mat"], t["h"], t["Le"], t["level"])]), img(key[("satin", t["g"], t["Lt"], 2)]), img(key[(t["mat"], t["g"], t["Lt"], t["level"])]),
-           img(f"zest_main/{r['tag']}_raw.png"), img(f"zest_main/{r['tag']}_light.png")]
-    rowsB.append((t["mat"], [crop(x, 0.12) for x in ims], r))
-fig = plt.figure(figsize=(7.0, 3.1)); W = 0.188; H = 0.135
-ta = ["Base", "Material +1", "Key/fill ratio", r"$|\Delta|$ material", r"$|\Delta|$ ratio"]
-tb = ["Exemplar", "Target input", "Ground truth", "ZeST", "ZeST + removal"]
-for i, (mat, ims) in enumerate(rowsA):
+    B.append((f"{t['mat'].capitalize()}, level {t['level']}", [crop(img(p), 0.12) for p in [key[(t["mat"], t["h"], t["Le"], t["level"])], key[("satin", t["g"], t["Lt"], 2)],
+              key[(t["mat"], t["g"], t["Lt"], t["level"])], f"zest_main/{r['tag']}_raw.png", f"zest_main/{r['tag']}_light.png"]], r))
+fig = plt.figure(figsize=(7.0, 4.0))
+cw, ch, gx = 0.084, 0.185, 0.008           # cell width/height (fig fraction), column gap
+x0a, x0b = 0.012, 0.535                     # panel origins; wide gutter between panels
+ytop = 0.80; rowstep = 0.262                # leaves a label strip above each row and a metric strip below
+def cell(x0, i, j): return fig.add_axes([x0 + j * (cw + gx), ytop - i * rowstep - ch, cw, ch])
+def clean(ax):
+    ax.set_xticks([]); ax.set_yticks([]); [s.set_visible(False) for s in ax.spines.values()]
+ta = ["Base", "Material +1", "Ratio +1", r"$|\Delta|$ material", r"$|\Delta|$ ratio"]
+tb = ["Exemplar", "Target input", "Ground truth", "ZeST", "+ removal"]
+for i, (mat, ims, ds) in enumerate(A):
+    for j, x in enumerate(ims + ds):
+        ax = cell(x0a, i, j); clean(ax)
+        im = ax.imshow(x, cmap="magma", vmin=0, vmax=vmax) if j >= 3 else ax.imshow(x)
+        if i == 0: ax.set_title(ta[j], fontsize=6.3, pad=19)
+    fig.text(x0a, ytop - i * rowstep + 0.008, mat.capitalize(), fontsize=6.5, fontweight="bold", va="bottom")
+for i, (lab, ims, r) in enumerate(B):
     for j, x in enumerate(ims):
-        ax = fig.add_axes([0.06 + j * 0.19, 0.83 - i * H, W * 0.72, H * 0.95]) if False else fig.add_axes([0.045 + j * 0.091, 0.70 - i * 0.30, 0.088, 0.27])
-        ax.imshow(x, cmap="magma" if j >= 3 else None, vmin=0, vmax=1); ax.set_xticks([]); ax.set_yticks([])
-        for s_ in ax.spines.values(): s_.set_visible(False)
-        if i == 0: ax.set_title(ta[j], fontsize=6.5, pad=2)
-        if j == 0: ax.set_ylabel(mat, fontsize=7)
-for i, (mat, ims, r) in enumerate(rowsB):
-    for j, x in enumerate(ims):
-        ax = fig.add_axes([0.53 + j * 0.091, 0.70 - i * 0.30, 0.088, 0.27]); ax.imshow(x); ax.set_xticks([]); ax.set_yticks([])
-        for s_ in ax.spines.values(): s_.set_visible(False)
-        if i == 0: ax.set_title(tb[j], fontsize=6.5, pad=2)
-        if j == 0: ax.set_ylabel(f"{mat}, level {r['tag'].split('_')[1]}", fontsize=6.5)
-        if j == 3: ax.set_xlabel("LPIPS %.3f" % r["raw"]["lpips_gt"], fontsize=6)
-        if j == 4: ax.set_xlabel("LPIPS %.3f" % r["light"]["lpips_gt"], fontsize=6)
-fig.text(0.27, -0.02, "(a) Material change and key/fill ratio change", ha="center", fontsize=7.5)
-fig.text(0.76, -0.02, "(b) ZeST transfer with and without lighting removal", ha="center", fontsize=7.5)
+        ax = cell(x0b, i, j); clean(ax); ax.imshow(x)
+        if i == 0: ax.set_title(tb[j], fontsize=6.3, pad=19)
+    fig.text(x0b, ytop - i * rowstep + 0.008, lab, fontsize=6.5, fontweight="bold", va="bottom")
+    yb = ytop - i * rowstep - ch - 0.008
+    d = r["light"]["lpips_gt"] - r["raw"]["lpips_gt"]
+    fig.text(x0b + 3 * (cw + gx) + cw / 2, yb, "LPIPS %.3f" % r["raw"]["lpips_gt"], fontsize=5.4, ha="center", va="top")
+    fig.text(x0b + 4 * (cw + gx) + cw / 2, yb, "%.3f (%s%.3f)" % (r["light"]["lpips_gt"], "+" if d >= 0 else "$-$", abs(d)), fontsize=5.4, ha="center", va="top",
+             color="#b2182b" if d > 0 else "#2166ac")
+# colorbar under the two difference columns of (a)
+cax = fig.add_axes([x0a + 3 * (cw + gx), ytop - 2 * rowstep - ch - 0.045, 2 * cw + gx, 0.014])
+cb = fig.colorbar(im, cax=cax, orientation="horizontal"); cb.ax.tick_params(labelsize=5, length=2, pad=1); cb.outline.set_linewidth(0.4)
+cb.set_label("mean |RGB difference| (shared scale)", fontsize=5.2, labelpad=1)
+fig.text(x0a, 1.0, "(a) Material edit vs. key/fill ratio change", fontsize=7.3, fontweight="bold", va="top")
+fig.text(x0b, 1.0, "(b) Lighting removal in ZeST transfer", fontsize=7.3, fontweight="bold", va="top")
+fig.add_artist(plt.Line2D([0.5235, 0.5235], [0.05, 0.96], color="#bbbbbb", lw=0.6))
 fig.savefig("figs_out/qual.pdf", bbox_inches="tight", dpi=300); fig.savefig("figs_out/qual.png", bbox_inches="tight", dpi=150)
-print([r["tag"] for _, _, r in rowsB])
+print("vmax", vmax, [r["tag"] for r in pick])
